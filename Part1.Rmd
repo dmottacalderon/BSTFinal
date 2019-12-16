@@ -1,0 +1,377 @@
+*GROUP PROJECT BST 260*: Analysis of Colorectal Cancer in the United States between 2005 and 2015 based on the SEER Dataset.
+
+**Alistair Quinn**
+**Camille Dollinger**
+**Daniel Motta-Calderon**
+
+Please read the dictionary to understand what each of the variables mean. In order to load this markdown file and load the dataset, make sure the dataset "cancer2.csv" is in your desktop OR change the directory in the first chunk.
+
+LOAD DATASETS
+Here I am loading 3 databases for the following registries:Atlanta, Connecticut, Detroit, Hawaii, Iowa,  New Mexico, San Francisco-Oakland, Seattle-Puget Sound,Utah, San Jose-Monterey, Los Angeles, Rural Georgia, Alaska, Greater California, Kentucky, Louisiana, New Jersey, and Greater Georgia.
+
+```{r}
+getwd()
+setwd("/Users/motta.dan/Desktop/finalbst")
+```
+```{r}
+library(tidyverse)
+Partial1<- read.csv("cancer2.csv")
+Partial2 <- read.csv("cancer3.csv")
+Partial3 <- read.csv("cancer4.csv")
+```
+
+COMBINING DATASET
+Here I combined the 3 datasets into a bigdataset. This results in 1,045,955 patients with Colorectal cancer in the above registries from 1976 to 2016.
+```{r}
+CompleteData <- rbind(Partial1, Partial2, Partial3)
+```
+
+FILTER BETWEEN 2005 and 2015
+The initial plan was to do 2000 to 2015, however, the criteria for staging and some other variables changed in 2004. Also criteria changed in 2016, therefore, I thought the best time period to analyze in terms of consistency is between 2005 and 2015.
+
+This filter reduces the number of patients to 435,819 for all states from the above registries.
+```{r}
+Yearfilter <- CompleteData %>% filter(YEAR_DX>2004 & YEAR_DX<2016)
+```
+
+FILTER BY STATE
+In case you want to filter by states, you will have to change the first 2 numbers of the 5 digit number of the variable STATE_CITY. You can find the FIPS states codes at: https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code
+
+E.g: New Mexico is #35
+When filtering for New Mexico we end up with 9208 observations. 
+```{r}
+NM_data <-Yearfilter %>% filter(STATE_CITY>34999 & STATE_CITY <36000)
+```
+
+CREATING A NEW VARIABLE WITH THE STATES CODES
+```{r}
+PartialSubset1 <- Yearfilter %>% mutate (STATE = ifelse(STATE_CITY %in% 01000:01999, "AL",
+                                                   ifelse(STATE_CITY %in% 02000:02999, "AK",
+                                                   ifelse(STATE_CITY %in% 04000:04999, "AZ",  
+                                                   ifelse(STATE_CITY %in% 05000:05999, "AR",
+                                                    ifelse(STATE_CITY %in% 06000:06999, "CA",
+                                                     ifelse(STATE_CITY %in% 08000:08999, "CO",      
+                                                           ifelse(STATE_CITY %in% 09000:09999, "CT",
+                                                     ifelse(STATE_CITY %in% 10000:10999, "DE",          
+                                                    ifelse(STATE_CITY %in% 11000:11999, "DC",           
+                                                    ifelse(STATE_CITY %in% 12000:12999, "FL",   
+                                                           
+                                                     ifelse(STATE_CITY %in% 13000:13999, "GA",          
+                                                     ifelse(STATE_CITY %in% 15000:15999, "HI",
+                                                      ifelse(STATE_CITY %in% 16000:16999, "ID",      
+                                                       ifelse(STATE_CITY %in% 17000:17999, "IL",     
+                                                       ifelse(STATE_CITY %in% 18000:18999, "IN",     
+                                                       ifelse(STATE_CITY %in% 19000:19999, "IA",
+                                                               ifelse(STATE_CITY %in% 20000:20999, "KS",
+                                                        ifelse(STATE_CITY %in% 21000:21999, "KY",       
+                                                        ifelse(STATE_CITY %in% 22000:22999, "LA",      
+                                                        ifelse(STATE_CITY %in% 23000:23999, "ME",      
+                                                        ifelse(STATE_CITY %in% 24000:24999, "MD",
+                                                        ifelse(STATE_CITY %in% 25000:25999, "MA",
+                                                         ifelse(STATE_CITY %in% 26000:26999, "MI",
+                                                         ifelse(STATE_CITY %in% 27000:27999, "MN",
+                                                         ifelse(STATE_CITY %in% 28000:28999, "MS",
+                                                         ifelse(STATE_CITY %in% 29000:29999, "MO",
+                                                                ifelse(STATE_CITY %in% 30000:30999, "MT",
+                                                          ifelse(STATE_CITY %in% 31000:31999, "NE",
+                                                           ifelse(STATE_CITY %in% 32000:32999, "NV",
+                                                           ifelse(STATE_CITY %in% 33000:33999, "NH",
+                                                           ifelse(STATE_CITY %in% 34000:34999, "NJ",
+                                                           ifelse(STATE_CITY %in% 35000:35999, "NM",       ifelse(STATE_CITY %in% 49000:49999, "UT",
+                                                                                                                  ifelse(STATE_CITY %in% 53000:53999, "WA",
+                                                           ifelse(STATE_CITY %in% 36000:36999, "NY",
+                                                           ifelse(STATE_CITY %in% 37000:37999, "NC",
+                                                           ifelse(STATE_CITY %in% 38000:38999, "ND",
+                                                           ifelse(STATE_CITY %in% 39000:39999, "OH",
+                                          
+                                                    ifelse(STATE_CITY %in% 56000:56999, "WY", "Other")))))))))))))))))))))))))))))))))))))))) 
+```
+
+
+
+
+```{r}
+Tidy_complete <- PartialSubset1 %>% mutate (STATE_Factor=as.factor(STATE))
+```
+
+THIS ARE THE STATES THAT WE HAVE INFORMATION AVAILABLE
+
+```{r}
+levels(Tidy_complete$STATE_Factor)
+```
+
+Now I will include the population per state from 2005 to 2013 (Those years are the only available years from the dataset I found here: https://github.com/jakevdp/data-USstates)
+
+```{r}
+Pop <- read.csv("pop.csv")
+max(Pop$year)
+Pop1 <- Pop %>% filter(year %in% 2005:2015 & ages == "total")
+Pop1 <- Pop1%>% rename(YEAR_DX=year)
+PopFinal <- Pop1 %>% rename (STATE_factor=state.region)
+PopFinal <- PopFinal %>% rename (POPULATION=population)
+PopFinal <- PopFinal %>% mutate(STATE=as.character(STATE_factor))
+PopFinal$ages <- NULL
+PopFinal$STATE_factor <- NULL
+```
+
+Now I will merge both the population dataset and the Tidy_complete datasets. We only have population data until 2013. Therefore in the following subset there are observations with NA on population. This dataset (Merged_tidy_2015) includes 435,819 observations. 
+
+```{r}
+Merged_tidy_2015 <- merge(PopFinal, Tidy_complete, by=c("YEAR_DX", "STATE"), all.y=TRUE)
+```
+
+In the next chunk I will drop observations of 2014 and 2015. Therefore this dataset includes: Patients with colorectal cancer from "AK" "CA" "CT" "GA" "HI" "IA" "KY" "LA" "MI" "NJ" "NM" "UT" "WA", from 2005 to 2013. This dataset is READY to be used. After dropping 2 years, the final dataset contains 357,223 patients.
+
+```{r}
+Merged_tidy_2013 <- merge(PopFinal, Tidy_complete, by=c("YEAR_DX", "STATE"), all.y=FALSE)
+```
+
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+#Here I am creating a dataset with an additional column for Prevalence (named "Prevalence") 
+#This is number of cases of colorectal cancer per 100,000 people in each state in each year.
+Prevalence_data <-Merged_tidy_2013 %>%  group_by(STATE)%>% mutate(prevalence = ((n()/POPULATION)*100000))
+
+Prevalence_data <- Prevalence_data %>% mutate(RACE_CAT= ifelse(RACE==1,"White",        
+ifelse(RACE==2,"Black", 
+ifelse(RACE==3, "American_indian",       
+ifelse(RACE==4, "Asian",
+ifelse(RACE==7, "Other","Other"))))))
+
+#Are difference in survival across racial categories?
+
+Prevalence_data <- mutate(Prevalence_data, dying=ifelse(DEATH_CA==1 | DEATH_OTHER==1, 1, 0))
+Proportion_race <- Prevalence_data %>% group_by(RACE_CAT, dying) %>% summarize(n=n()) %>% mutate (prop=n/sum(n)) %>% spread (dying, prop)
+
+table(Prevalence_data$RACE_CAT, Prevalence_data$dying)
+chisq.test(Prevalence_data$RACE_CAT, Prevalence_data$dying)
+
+
+comparison1 <- Prevalence_data %>% filter(RACE_CAT=="White" | RACE_CAT=="Black")
+table(comparison1$RACE_CAT, comparison1$dying)
+chisq.test(comparison1$RACE_CAT, comparison1$dying)
+
+comparison2 <- Prevalence_data %>% filter(RACE_CAT=="White" | RACE_CAT=="Asian")
+table(comparison2$RACE_CAT, comparison2$dying)
+chisq.test(comparison2$RACE_CAT, comparison2$dying)
+
+comparison3 <- Prevalence_data %>% filter(RACE_CAT=="Black" | RACE_CAT=="Asian")
+table(comparison3$RACE_CAT, comparison3$dying)
+chisq.test(comparison3$RACE_CAT, comparison3$dying)
+
+comparison4 <- Prevalence_data %>% filter(RACE_CAT=="American_indian" | RACE_CAT=="White")
+table(comparison4$RACE_CAT, comparison4$dying)
+chisq.test(comparison4$RACE_CAT, comparison4$dying)
+
+comparison5 <- Prevalence_data %>% filter(RACE_CAT=="American_indian" | RACE_CAT=="Asian")
+table(comparison5$RACE_CAT, comparison5$dying)
+chisq.test(comparison5$RACE_CAT, comparison5$dying)
+
+comparison6 <- Prevalence_data %>% filter(RACE_CAT=="American_indian" | RACE_CAT=="Black")
+table(comparison6$RACE_CAT, comparison6$dying)
+chisq.test(comparison6$RACE_CAT, comparison6$dying)
+
+dying_factor <- as.factor(Prevalence_data$dying)
+plot_race <- Prevalence_data %>% ggplot() + 
+  geom_bar(mapping=aes(x=RACE_CAT, y=..count../sum(..count..), fill=dying_factor), position = "dodge")
+print(plot_race)
+
+#Count SEX 
+Prevalence_data %>% group_by(SEX) %>% count(SEX)
+Prevalence_data <- Prevalence_data %>% filter(!is.na(SEX)) %>% mutate(SEX_CAT=ifelse(SEX==1,"Male", "Female"))
+Proportion_sex <- Prevalence_data %>% group_by(SEX_CAT, dying) %>% summarize(n=n()) %>% mutate (prop=n/sum(n)) %>% spread (dying, prop)
+print(Proportion_sex)
+
+table(Prevalence_data$SEX_CAT, Prevalence_data$dying)
+chisq.test(Prevalence_data$SEX_CAT, Prevalence_data$dying)
+
+plot_sex <- Prevalence_data %>% ggplot() + 
+  geom_bar(mapping=aes(x=SEX_CAT, y=..count../sum(..count..), fill=dying_factor), position = "dodge")
+print(plot_sex)
+
+
+Prevalence_data$INSURANCE <- as.character(Prevalence_data$INSURANCE)
+str(Prevalence_data$INSURANCE)
+Coded_insurance <- Prevalence_data %>% mutate(insurance_cat=ifelse (INSURANCE=="3" | INSURANCE =="2", "Insured", "Uninsured"))
+
+comparison7 <- Coded_insurance %>% filter(insurance_cat=="Insured" | insurance_cat=="Uninsured")
+table(comparison7$dying, comparison7$insurance_cat)
+chisq.test(comparison7$dying, comparison7$insurance_cat)
+
+Proportion_insurance <- comparison7 %>% group_by(insurance_cat, dying) %>% summarize(n=n()) %>% mutate (prop=n/sum(n)) %>% spread (dying, prop)
+print(Proportion_insurance)
+
+comparison7$dying_factor <- as.factor(comparison7$dying)
+
+plot_insurance <- comparison7 %>% ggplot() + 
+  geom_bar(mapping=aes(x=insurance_cat, y=..count../sum(..count..), fill=dying_factor), position = "dodge")
+```
+
+```{r}
+ 
+```
+
+```{r}
+
+```
+
+Export Prevalence_data
+```{r}
+mottadata <- read.csv("mottadata.csv")
+write.csv(Prevalence_data, "prevalencedata.csv")
+write.csv(comparison7, "comparison7.csv")
+```
+
+
+SHINY APP
+```{r}
+library(shiny)
+
+#Define UI
+ui<- fluidPage (
+
+#Define Theme
+  theme = shinythemes::shinytheme ("slate"), 
+  
+  # Application Title
+  titlePanel ("Analysis of Colorectal Cancer in the United States between 2005 and 2013 based on the SEER"), 
+  
+  #Define Tabs
+  tabsetPanel(
+   
+        #Tab
+tabPanel(
+      "BASELINE CHARACTERISTICS"
+      ,
+    
+      sidebarLayout(
+        
+        sidebarPanel(
+          p(strong("Baseline Characteristics of the Population")),  br(), br(), "Colon cancer is the 3rd most common cancer in men and women in the United States. Despite survival has improved over the past 10 years, its incidence is expected to increase in the youngest populations. In this Shiny App we want to show the trends in prevalence by state from 2005 to2013. We also were interested in assessing if insurance, gender and race are associated with worse survival.", br()
+        ),    
+        
+        
+        mainPanel(
+          dataTableOutput("text1")
+        )
+      )
+      
+    ),
+
+#Tab
+tabPanel(
+      "PREVALENCE"
+      ,
+    
+      sidebarLayout(
+        
+        sidebarPanel(
+          selectInput("stateinput", "Please Select a State", 
+                       choices= as.list(levels(Prevalence_data$STATE_Factor))),
+          p(strong("Trends in Prevalence per State througout time")),  br(), br(), "Colon cancer prevalence has decreased over the past years, likely because of improved treatments and consequently higher survival - however, its incidence has been increasing due to better screening methods in patients >50yo but also because of more cases in younger patients."),    
+        
+        
+        mainPanel(
+          plotOutput("trendplot")
+        )
+      )
+      
+    ),
+     
+    #Second Tab
+    tabPanel(
+      "GENDER",
+    
+      sidebarLayout(
+        sidebarPanel(
+          p(strong("Is there any association between gender  and mortality in patients with Colorectal Cancer?")),  br(), "X-squared = 2.5423, df = 1, p-value = 0.1108",br(),br(), "There are no statistically significant differences between genders"),
+        
+        mainPanel(
+          
+          plotOutput("sexplot")
+        )
+      )
+      
+    ),
+    
+
+    #Third Tab
+    tabPanel(
+      "RACE",
+    
+      sidebarLayout(
+        sidebarPanel(
+          p(strong("Is there any association between seasonality and Survival of Patients with Colorectal Cancer?")),  br(), "X-squared = 1693.1, df = 4, p-value < 2.2e-16", br(), "Significant Pairwise comparisons after Bonferroni Adjustment: Black-White(p<0.001),Asian-White(p<0.001) Black-Asian(p<0.001) Asian-White, Asian-Americanindian(p<0.001)"),
+          
+        
+        mainPanel(
+          plotOutput("raceplot")
+        )
+      )
+      
+    ),
+  
+#Tab
+    tabPanel(
+      "INSURANCE",
+    
+      sidebarLayout(
+        sidebarPanel(
+          p(strong("Is there any association between having insurance and mortality in patients with Colorectal Cancer?")),  br(), 
+          
+    "Pearson's Chi-squared test with Yates' continuity correction
+X-squared = 694.76, df = 1, p-value < 2.2e-16
+", br(), "With statistically significant evidence, patients who had insurance had better survival compared to those without insurance"
+          
+           
+), 
+        
+        mainPanel(
+          plotOutput("insuranceplot")
+        )
+      )
+      
+    )  
+
+))
+
+
+
+#Define Server
+server <- function (input, output) {
+  
+  output$insuranceplot <- renderPlot ({
+    comparison7 %>% ggplot() + 
+  geom_bar(mapping=aes(x=insurance_cat, y=..count../sum(..count..), fill=dying_factor), position = "dodge") +ylab("Proportion")+ggtitle("Proportion of Death among Cases by Sex")+labs(fill="Death (1) and Survival (0)") + 
+  theme(axis.title.x=element_blank())
+    })
+  
+  output$sexplot <- renderPlot ({
+    Prevalence_data %>% ggplot() + 
+  geom_bar(mapping=aes(x=SEX_CAT, y=..count../sum(..count..), fill=dying_factor), position = "dodge") +ylab("Proportion")+ggtitle("Proportion of Death by Sex")+labs(fill="Death (1) and Survival (0)")+ 
+  theme(axis.title.x=element_blank())
+    })
+  
+  output$raceplot <- renderPlot ({
+    Prevalence_data %>% ggplot() + 
+  geom_bar(mapping=aes(x=RACE_CAT, y=..count../sum(..count..), fill=dying_factor), position = "dodge") +ylab("Proportion")+ggtitle("Proportion of Death among Cases by Race Category")+labs(fill="Death (1) and Survival (0)")+ 
+  theme(axis.title.x=element_blank())
+    })
+  
+  output$trendplot <- renderPlot ({
+    Prevalence_data %>% filter(STATE_Factor==input$stateinput) %>% ggplot (aes(x=YEAR_DX, y=prevalence)) + geom_line() + ggtitle("Trends in Prevalence of Colorectal cancer per selected State through out time")  + ylab("(cases/population/year)") + xlab("Year")
+    })
+  
+  
+  output$text1 <- renderDataTable({
+mottadata
+  })
+  
+}
+
+#Define Shiny App 
+shiny::shinyApp(ui=ui,server=server)
+```
+
